@@ -1,3 +1,8 @@
+output "instance_id" {
+  description = "EC2 instance ID - used by pz.sh for start/stop"
+  value       = module.compute.instance_id
+}
+
 output "server_public_ip" {
   description = "Enter this in Project Zomboid's Join server > Direct Connection"
   value       = module.compute.public_ip

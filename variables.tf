@@ -47,3 +47,9 @@ variable "dns_record_name" {
   type        = string
   default     = "pz"
 }
+
+variable "use_elastic_ip" {
+  description = "Set false before long idle periods to avoid the EIP charge that applies while the instance is stopped. The Cloudflare record updates automatically when it's re-enabled."
+  type        = bool
+  default     = true
+}

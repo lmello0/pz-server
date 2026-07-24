@@ -30,6 +30,12 @@ variable "max_players" {
   default     = 8
 }
 
+variable "use_elastic_ip" {
+  description = "Allocate a static Elastic IP. Set false to save the hourly charge that applies while the instance is stopped; the DNS record will follow whatever IP the instance gets on next start."
+  type        = bool
+  default     = true
+}
+
 variable "root_volume_size" {
   description = "Root EBS volume size in GB - holds the OS + game install, not save data"
   type        = number

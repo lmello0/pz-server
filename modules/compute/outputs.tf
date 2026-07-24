@@ -3,8 +3,8 @@ output "instance_id" {
 }
 
 output "public_ip" {
-  description = "The Elastic IP - this is what you and your friends connect to"
-  value       = aws_eip.pz.public_ip
+  description = "The address to connect to. Uses the Elastic IP when enabled, otherwise the instance's auto-assigned public IP (which changes on every stop/start)."
+  value       = var.use_elastic_ip ? aws_eip.pz[0].public_ip : aws_instance.pz.public_ip
 }
 
 output "admin_password" {

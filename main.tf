@@ -10,6 +10,7 @@ module "compute" {
   subnet_id         = module.network.subnet_id
   security_group_id = module.network.security_group_id
   ssh_public_key    = file(var.ssh_public_key_path)
+  use_elastic_ip    = var.use_elastic_ip
 }
 
 module "storage" {

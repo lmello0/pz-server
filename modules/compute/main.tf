@@ -83,11 +83,15 @@ resource "aws_instance" "pz" {
   }
 }
 
-## --- Elastic IP ---
-# A static public IP, reattached to the instance regardless of stop/start.
-# Without this, stopping the instance releases its public IP and you'd
-# get a different one on next start.
+## --- Elastic IP (optional) ---
+# A static public IP that survives instance stop/start. AWS charges for
+# an EIP whenever it's NOT attached to a running instance - including
+# while the instance is stopped - so if the server sits idle for long
+# stretches it's cheaper to release it and allocate a new one on the
+# next apply. The DNS record follows public_ip automatically either way.
 resource "aws_eip" "pz" {
+  count = var.use_elastic_ip ? 1 : 0
+
   instance = aws_instance.pz.id
   domain   = "vpc"
 
