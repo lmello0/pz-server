@@ -26,6 +26,21 @@ resource "random_password" "admin" {
   special = false # keep it simple to pass safely as a bare CLI argument
 }
 
+## --- Server join password ---
+# What you share with friends. Separate from the admin password: leaking
+# this lets someone play, leaking the admin one lets them run commands.
+resource "random_password" "server" {
+  length  = 12
+  special = false # players have to type this by hand
+}
+
+## --- RCON password ---
+# Grants full server control, so this one is long and never shared.
+resource "random_password" "rcon" {
+  length  = 24
+  special = false
+}
+
 ## --- Your SSH key, imported (not generated) ---
 # public_key here is just text - AWS stores it and injects it into the
 # instance's authorized_keys on first boot. Your private key never
@@ -51,7 +66,10 @@ resource "aws_instance" "pz" {
   # Runs once, automatically, on first boot only. This is what installs
   # SteamCMD, downloads the game, and wires up the systemd service.
   user_data = templatefile("${path.module}/install.sh.tpl", {
-    admin_password = random_password.admin.result
+    admin_password  = random_password.admin.result
+    server_password = random_password.server.result
+    rcon_password   = random_password.rcon.result
+    max_players     = var.max_players
   })
 
   # By default, changing user_data does NOT make an already-running

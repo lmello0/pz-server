@@ -124,10 +124,69 @@ sed -i 's/-Xms[0-9]*g/-Xms2g/' "$INSTALL_DIR/ProjectZomboid64.json"
 
 chown -R steam:steam "$INSTALL_DIR"
 
+# --- Server configuration ---
+# The .ini lives on the PERSISTENT volume, so it survives rebuilds. Only
+# write it if it doesn't already exist - otherwise every rebuild would
+# clobber settings you'd tuned live in-game.
+#
+# Open=false is PZ's whitelist mode: players can't just join with any
+# username, an admin has to create each account explicitly with
+# /adduser <name> <password>. Combined with Password= that's two layers:
+# you need the server password to connect at all, and an account to play.
+CONFIG_DIR="$SAVE_DIR/Server"
+mkdir -p "$CONFIG_DIR"
+
+if [ ! -f "$CONFIG_DIR/servertest.ini" ]; then
+  echo "writing initial servertest.ini"
+  cat > "$CONFIG_DIR/servertest.ini" <<INI
+Password=${server_password}
+Open=false
+MaxPlayers=${max_players}
+PublicName=PZ Server
+PublicDescription=Private server
+Public=false
+PVP=false
+PauseEmpty=true
+RCONPort=27015
+RCONPassword=${rcon_password}
+SaveWorldEveryMinutes=15
+DefaultPort=16261
+Map=Muldraugh, KY
+INI
+  chown steam:steam "$CONFIG_DIR/servertest.ini"
+else
+  echo "servertest.ini already exists on the volume - leaving it alone"
+fi
+
+# --- Start wrapper with a control pipe ---
+# To shut down cleanly we need to send 'quit' to the running server's
+# stdin. systemd can't do that directly (its stdin is /dev/null by
+# default, and socket activation is a different mechanism), so we feed
+# the server from a named pipe (FIFO) that stays open for writing.
+# ExecStop then just writes 'quit' into that pipe.
+cat > "$INSTALL_DIR/run-server.sh" <<'WRAPPER'
+#!/bin/bash
+PIPE=/home/steam/pz-server/control.pipe
+INSTALL_DIR=/home/steam/pz-server
+
+rm -f "$PIPE"
+mkfifo "$PIPE"
+
+# Hold the pipe open for writing so it never sees EOF, otherwise the
+# server would read EOF immediately and exit.
+sleep infinity > "$PIPE" &
+HOLDER=$!
+
+# shellcheck disable=SC2064
+trap "kill $HOLDER 2>/dev/null; rm -f $PIPE" EXIT
+
+"$INSTALL_DIR/start-server.sh" "$@" < "$PIPE"
+WRAPPER
+
+chmod +x "$INSTALL_DIR/run-server.sh"
+
 # --- systemd service ---
 # Starts the server on boot and restarts it automatically if it crashes.
-# Server name/password/admin config gets refined in a later step - this
-# gets a vanilla server running end to end first.
 cat > /etc/systemd/system/zomboid.service <<EOF
 [Unit]
 Description=Project Zomboid Dedicated Server
@@ -136,7 +195,16 @@ After=network.target
 [Service]
 User=steam
 WorkingDirectory=$INSTALL_DIR
-ExecStart=$INSTALL_DIR/start-server.sh -servername servertest -adminpassword "${admin_password}"
+ExecStart=$INSTALL_DIR/run-server.sh -servername servertest -adminpassword "${admin_password}"
+
+# --- Graceful shutdown ---
+# PZ only flushes the world to disk on a save event. A plain SIGTERM
+# kills it mid-flight and loses everything since the last autosave.
+# Writing 'quit' into the control pipe makes PZ save and exit cleanly,
+# which matters every time the instance is stopped to save money.
+ExecStop=/bin/bash -c 'echo quit > $INSTALL_DIR/control.pipe'
+TimeoutStopSec=120
+
 Restart=on-failure
 RestartSec=10
 

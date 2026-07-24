@@ -12,3 +12,15 @@ output "admin_password" {
   value       = random_password.admin.result
   sensitive   = true
 }
+
+output "server_password" {
+  description = "Join password to share with friends"
+  value       = random_password.server.result
+  sensitive   = true
+}
+
+output "rcon_password" {
+  description = "RCON console password - keep private"
+  value       = random_password.rcon.result
+  sensitive   = true
+}

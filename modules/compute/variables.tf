@@ -24,6 +24,12 @@ variable "ssh_public_key" {
   type        = string
 }
 
+variable "max_players" {
+  description = "Player slot cap"
+  type        = number
+  default     = 8
+}
+
 variable "root_volume_size" {
   description = "Root EBS volume size in GB - holds the OS + game install, not save data"
   type        = number
