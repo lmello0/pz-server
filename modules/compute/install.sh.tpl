@@ -20,19 +20,56 @@ apt-get install -y steamcmd
 # not the whole machine.
 id -u steam &>/dev/null || useradd -m -s /bin/bash steam
 
+# --- Mount the save-data EBS volume ---
+# The volume attaches asynchronously, shortly after the instance boots,
+# so the device may not exist yet when this script runs - wait for it.
+DEVICE=/dev/nvme1n1
+SAVE_DIR=/home/steam/Zomboid
+
+for i in $(seq 1 30); do
+  [ -b "$DEVICE" ] && break
+  echo "waiting for $DEVICE to attach ($i/30)..."
+  sleep 5
+done
+
+if [ ! -b "$DEVICE" ]; then
+  echo "ERROR: $DEVICE never appeared; aborting so we don't write saves to ephemeral storage"
+  exit 1
+fi
+
+# Format ONLY if the volume is blank. `blkid` succeeds if a filesystem
+# already exists, which is the case on every rebuild after the first -
+# formatting then would destroy every save. This check is what makes the
+# volume genuinely persistent across instance replacement.
+if ! blkid "$DEVICE"; then
+  echo "no filesystem found on $DEVICE - formatting (first run only)"
+  mkfs -t ext4 "$DEVICE"
+fi
+
+mkdir -p "$SAVE_DIR"
+mount "$DEVICE" "$SAVE_DIR"
+
+# Persist the mount across reboots, keyed by UUID (device names can
+# change between boots; UUIDs don't).
+UUID=$(blkid -s UUID -o value "$DEVICE")
+grep -q "$UUID" /etc/fstab || echo "UUID=$UUID $SAVE_DIR ext4 defaults,nofail 0 2" >> /etc/fstab
+
+chown -R steam:steam "$SAVE_DIR"
+
 INSTALL_DIR=/home/steam/pz-server
 
-# --- Bootstrap SteamCMD once by itself first ---
-# `sudo -u steam` alone does NOT reset $HOME to the steam user's home
-# directory - it inherits root's ($HOME=/root), which the steam user
-# can't write to. SteamCMD silently writes its own package/depot cache
-# under $HOME, so without -H (which forces HOME to match the target
-# user) it ends up with a broken cache and app_update fails with
-# "Missing configuration" even though login succeeded. -H fixes that.
-sudo -H -u steam /usr/games/steamcmd +quit
+# --- Pre-create ~/.steam so SteamCMD's first-run symlinks succeed ---
+# On first run SteamCMD tries to create symlinks at ~/.steam/root and
+# ~/.steam/steam, but the apt package doesn't create ~/.steam itself, so
+# `ln` fails with "No such file or directory". SteamCMD carries on
+# regardless, then fails at the app-install step with the misleading
+# "Missing configuration" error. Creating the directory up front avoids
+# the whole chain.
+sudo -u steam mkdir -p /home/steam/.steam
 
 # --- Install Project Zomboid Dedicated Server (Steam App ID 380870) ---
 # Free to download even without owning the game.
+# -H forces $HOME to the steam user's home (sudo alone keeps root's).
 sudo -H -u steam /usr/games/steamcmd \
   +force_install_dir "$INSTALL_DIR" \
   +login anonymous \
