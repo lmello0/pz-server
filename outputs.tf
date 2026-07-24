@@ -3,6 +3,11 @@ output "server_public_ip" {
   value       = module.compute.public_ip
 }
 
+output "server_hostname" {
+  description = "Friendlier address to share with friends (port is still 16261)"
+  value       = module.dns.hostname
+}
+
 output "admin_password" {
   description = "Retrieve with: terraform output -raw admin_password"
   value       = module.compute.admin_password

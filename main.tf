@@ -28,3 +28,11 @@ module "budget" {
   alert_email   = var.alert_email
   monthly_limit = var.monthly_budget_usd
 }
+
+module "dns" {
+  source = "./modules/dns"
+
+  zone_id     = var.cloudflare_zone_id
+  record_name = var.dns_record_name
+  elastic_ip  = module.compute.public_ip
+}

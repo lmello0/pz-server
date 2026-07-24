@@ -30,3 +30,20 @@ variable "monthly_budget_usd" {
   type        = string
   default     = "20"
 }
+
+variable "cloudflare_api_token" {
+  description = "Cloudflare API token with Zone:DNS:Edit permission. Keep this out of version control."
+  type        = string
+  sensitive   = true
+}
+
+variable "cloudflare_zone_id" {
+  description = "Cloudflare Zone ID for your domain"
+  type        = string
+}
+
+variable "dns_record_name" {
+  description = "Subdomain for the server, e.g. \"pz\" -> pz.yourdomain.com"
+  type        = string
+  default     = "pz"
+}
