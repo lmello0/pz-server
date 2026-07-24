@@ -3,6 +3,12 @@ variable "project_name" {
   default = "pz-server"
 }
 
+variable "custom_ami_id" {
+  description = "AMI ID from a baked image (see packer/). Leave empty to use stock Ubuntu 22.04 and run the full SteamCMD install at boot - slower (~10 min) but requires no separate build step."
+  type        = string
+  default     = ""
+}
+
 variable "instance_type" {
   description = "t3.large = 2 vCPU / 8GB RAM, a good fit for 5-8 players with few mods"
   type        = string

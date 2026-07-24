@@ -11,6 +11,7 @@ module "compute" {
   security_group_id = module.network.security_group_id
   ssh_public_key    = file(var.ssh_public_key_path)
   use_elastic_ip    = var.use_elastic_ip
+  custom_ami_id     = var.custom_ami_id
 }
 
 module "storage" {
@@ -33,7 +34,8 @@ module "budget" {
 module "dns" {
   source = "./modules/dns"
 
-  zone_id     = var.cloudflare_zone_id
-  record_name = var.dns_record_name
-  elastic_ip  = module.compute.public_ip
+  zone_id       = var.cloudflare_zone_id
+  record_name   = var.dns_record_name
+  elastic_ip    = module.compute.public_ip
+  create_record = var.use_elastic_ip
 }

@@ -1,7 +1,9 @@
 ## --- Find the latest Ubuntu 22.04 LTS AMI in whatever region we're in ---
-# Hardcoding an AMI ID would break the moment Canonical ships a new image.
-# Instead we ask AWS for "the most recent official Canonical image matching
-# this name pattern" every time we plan/apply.
+# Only used as a fallback when custom_ami_id is empty. Hardcoding an AMI
+# ID would break the moment Canonical ships a new image, so this always
+# asks AWS for "the most recent official Canonical image matching this
+# name pattern" - but it's skipped in practice once you're using the
+# baked AMI from packer/, since that boots in a fraction of the time.
 data "aws_ami" "ubuntu" {
   most_recent = true
   owners      = ["099720109477"] # Canonical's official AWS account ID
@@ -15,6 +17,10 @@ data "aws_ami" "ubuntu" {
     name   = "virtualization-type"
     values = ["hvm"]
   }
+}
+
+locals {
+  ami_id = var.custom_ami_id != "" ? var.custom_ami_id : data.aws_ami.ubuntu.id
 }
 
 ## --- Admin password ---
@@ -52,7 +58,7 @@ resource "aws_key_pair" "pz" {
 
 ## --- The instance itself ---
 resource "aws_instance" "pz" {
-  ami                    = data.aws_ami.ubuntu.id
+  ami                    = local.ami_id
   instance_type          = var.instance_type
   subnet_id              = var.subnet_id
   vpc_security_group_ids = [var.security_group_id]

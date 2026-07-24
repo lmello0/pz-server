@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# pz-server/pz.sh
 #
 # Management wrapper for the Project Zomboid Terraform stack.
 #
@@ -8,6 +9,7 @@
 #   ./pz.sh status   - what's running and what it's costing
 #   ./pz.sh ssh      - connect to the server
 #   ./pz.sh logs     - follow the game server log
+#   ./pz.sh bake     - build an AMI for EC2
 #
 # Works in git-bash / WSL on Windows, and natively on Linux/macOS.
 
@@ -382,12 +384,40 @@ cmd_logs() {
     "ubuntu@${pair#*|}" "sudo journalctl -u zomboid -f"
 }
 
+cmd_bake() {
+  need terraform
+
+  if ! command -v packer >/dev/null 2>&1; then
+    die "'packer' is not installed. https://developer.hashicorp.com/packer/install"
+  fi
+
+  local subnet; subnet=$(tf_out subnet_id)
+  [ -n "$subnet" ] || die "No subnet in Terraform state yet - run ./pz.sh start (or terraform apply) at least once first."
+
+  local admin_ip; admin_ip=$(tfvar admin_ip)
+  [ -n "$admin_ip" ] || die "No admin_ip found in $TFVARS."
+
+  info "Building AMI in subnet $subnet, SSH restricted to $admin_ip"
+  info "This launches a temporary t3.medium, takes several minutes, and costs a few cents."
+
+  (cd packer && packer init pz-ami.pkr.hcl && packer build \
+    -var "subnet_id=$subnet" \
+    -var "ssh_source_cidr=$admin_ip" \
+    pz-ami.pkr.hcl) || die "packer build failed"
+
+  echo
+  ok "Build complete. Find the new AMI ID in the output above (or packer/manifest.json)."
+  info "Set custom_ami_id in $TFVARS to that AMI ID, then ./pz.sh start to switch to it."
+  warn "Switching AMIs replaces the running instance (save data on the EBS volume is unaffected)."
+}
+
 # ---------------------------------------------------------------------------
 usage() {
   cat <<'EOF'
 Project Zomboid server management
 
   ./pz.sh setup    Interactive first-time config (writes terraform.tfvars)
+  ./pz.sh bake     Build a faster-booting AMI via Packer (see packer/)
   ./pz.sh start    Bring the server up
   ./pz.sh stop     Save the world, shut down, optionally release the EIP
   ./pz.sh status   Show what's running
@@ -399,6 +429,7 @@ EOF
 
 case "${1:-}" in
   setup)  cmd_setup ;;
+  bake)   cmd_bake ;;
   start)  cmd_start ;;
   stop)   cmd_stop ;;
   status) cmd_status ;;

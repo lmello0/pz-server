@@ -9,6 +9,12 @@ variable "record_name" {
   default     = "pz"
 }
 
+variable "create_record" {
+  description = "Whether to create the DNS record at all. Tied to use_elastic_ip upstream - no point pointing DNS at an IP that won't exist."
+  type        = bool
+  default     = true
+}
+
 variable "elastic_ip" {
   description = "Comes from the compute module's output"
   type        = string

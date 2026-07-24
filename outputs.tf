@@ -3,6 +3,11 @@ output "instance_id" {
   value       = module.compute.instance_id
 }
 
+output "subnet_id" {
+  description = "Used by packer/pz-ami.pkr.hcl to build in the same network"
+  value       = module.network.subnet_id
+}
+
 output "server_public_ip" {
   description = "Enter this in Project Zomboid's Join server > Direct Connection"
   value       = module.compute.public_ip

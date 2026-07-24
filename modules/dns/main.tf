@@ -1,8 +1,12 @@
 ## --- A record pointing at the server ---
-# Skipped entirely when elastic_ip is empty. That happens when the EIP is
-# disabled AND the instance is stopped - a stopped instance has no public
-# IP at all, and writing a blank A record would break resolution rather
-# than just point somewhere stale.
+# Skipped entirely when create_record is false. That's driven by
+# use_elastic_ip upstream, not by whether elastic_ip happens to be
+# non-empty right now - `count` has to be decidable at PLAN time, and on
+# a fresh apply the instance doesn't exist yet, so its public IP is
+# unknown until apply. A plain boolean input variable is always known;
+# a computed attribute like module.compute.public_ip is not. Using the
+# boolean for count and saving the (possibly still-unknown) IP for the
+# resource body itself is what makes this valid.
 #
 # CRITICAL: proxied MUST be false. Cloudflare's proxy (the orange cloud)
 # only handles HTTP/HTTPS traffic. Project Zomboid uses raw UDP on
@@ -11,7 +15,7 @@
 # "DNS only" (grey cloud) just answers with the IP and stays out of the
 # way, which is exactly what a game server needs.
 resource "cloudflare_dns_record" "pz" {
-  count = var.elastic_ip == "" ? 0 : 1
+  count = var.create_record ? 1 : 0
 
   zone_id = var.zone_id
   name    = var.record_name

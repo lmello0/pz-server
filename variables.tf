@@ -53,3 +53,9 @@ variable "use_elastic_ip" {
   type        = bool
   default     = true
 }
+
+variable "custom_ami_id" {
+  description = "AMI ID built by packer/pz-ami.pkr.hcl. Leave empty to boot stock Ubuntu and do the full install at boot time instead."
+  type        = string
+  default     = ""
+}
