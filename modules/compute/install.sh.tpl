@@ -41,9 +41,11 @@ fi
 # already exists, which is the case on every rebuild after the first -
 # formatting then would destroy every save. This check is what makes the
 # volume genuinely persistent across instance replacement.
+FRESH_VOLUME=0
 if ! blkid "$DEVICE"; then
   echo "no filesystem found on $DEVICE - formatting (first run only)"
   mkfs -t ext4 "$DEVICE"
+  FRESH_VOLUME=1
 fi
 
 mkdir -p "$SAVE_DIR"
@@ -54,27 +56,60 @@ mount "$DEVICE" "$SAVE_DIR"
 UUID=$(blkid -s UUID -o value "$DEVICE")
 grep -q "$UUID" /etc/fstab || echo "UUID=$UUID $SAVE_DIR ext4 defaults,nofail 0 2" >> /etc/fstab
 
-chown -R steam:steam "$SAVE_DIR"
+# Only fix ownership on a freshly-formatted volume. On rebuilds the
+# volume is already populated and correctly owned; recursively chowning
+# a full 20GB of saves every time would be slow and pointless.
+if [ "$FRESH_VOLUME" -eq 1 ]; then
+  chown -R steam:steam "$SAVE_DIR"
+else
+  chown steam:steam "$SAVE_DIR"
+fi
 
 INSTALL_DIR=/home/steam/pz-server
 
-# --- Pre-create ~/.steam so SteamCMD's first-run symlinks succeed ---
-# On first run SteamCMD tries to create symlinks at ~/.steam/root and
-# ~/.steam/steam, but the apt package doesn't create ~/.steam itself, so
-# `ln` fails with "No such file or directory". SteamCMD carries on
-# regardless, then fails at the app-install step with the misleading
-# "Missing configuration" error. Creating the directory up front avoids
-# the whole chain.
+# --- Pre-create ~/.steam ---
+# SteamCMD's first run tries to symlink ~/.steam/root and ~/.steam/steam
+# but the apt package doesn't create ~/.steam, so `ln` errors. Harmless
+# on its own, but creating it keeps the logs clean.
 sudo -u steam mkdir -p /home/steam/.steam
 
 # --- Install Project Zomboid Dedicated Server (Steam App ID 380870) ---
 # Free to download even without owning the game.
-# -H forces $HOME to the steam user's home (sudo alone keeps root's).
-sudo -H -u steam /usr/games/steamcmd \
-  +force_install_dir "$INSTALL_DIR" \
-  +login anonymous \
-  +app_update 380870 validate \
-  +quit
+#
+# SteamCMD's FIRST invocation on a fresh machine reliably fails at the
+# app-install step with "Missing configuration" - the apt package is an
+# old shim that self-updates on first run, and the app install doesn't
+# work until that has settled. The second invocation succeeds. This was
+# verified by hand on three separate instances. Retry rather than trying
+# to pre-empt whichever piece of first-run state is missing.
+STEAM_OK=0
+set +e # allow individual attempts to fail without killing the script
+for attempt in 1 2 3 4; do
+  echo "steamcmd attempt $attempt/4..."
+  sudo -H -u steam /usr/games/steamcmd \
+    +force_install_dir "$INSTALL_DIR" \
+    +login anonymous \
+    +app_update 380870 validate \
+    +quit
+  if [ $? -eq 0 ]; then
+    STEAM_OK=1
+    echo "steamcmd succeeded on attempt $attempt"
+    break
+  fi
+  echo "attempt $attempt failed, retrying in 10s..."
+  sleep 10
+done
+set -e # back to fail-fast for everything after this
+
+if [ "$STEAM_OK" -ne 1 ]; then
+  echo "ERROR: steamcmd failed after 4 attempts"
+  exit 1
+fi
+
+if [ "$STEAM_OK" -ne 1 ]; then
+  echo "ERROR: steamcmd failed after 4 attempts"
+  exit 1
+fi
 
 # Depot files sometimes lose their executable bit on extraction.
 chmod +x "$INSTALL_DIR/start-server.sh" "$INSTALL_DIR/ProjectZomboid64" || true
