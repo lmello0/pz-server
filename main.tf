@@ -17,3 +17,14 @@ module "storage" {
 
   instance_id = module.compute.instance_id
 }
+
+module "backup" {
+  source = "./modules/backup"
+}
+
+module "budget" {
+  source = "./modules/budget"
+
+  alert_email   = var.alert_email
+  monthly_limit = var.monthly_budget_usd
+}

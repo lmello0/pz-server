@@ -19,3 +19,14 @@ variable "ssh_public_key_path" {
   description = "Path to your generated SSH public key file, e.g. \"C:/Users/mello/.ssh/pz-server-key.pub\""
   type        = string
 }
+
+variable "alert_email" {
+  description = "Email address for AWS budget alerts"
+  type        = string
+}
+
+variable "monthly_budget_usd" {
+  description = "Monthly spend threshold that triggers alerts"
+  type        = string
+  default     = "20"
+}

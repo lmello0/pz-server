@@ -18,7 +18,8 @@ resource "aws_ebs_volume" "saves" {
   }
 
   tags = {
-    Name = "${var.project_name}-saves"
+    Name   = "${var.project_name}-saves"
+    Backup = "true" # DLM finds volumes by tag, not by ID - this is the hook
   }
 }
 
