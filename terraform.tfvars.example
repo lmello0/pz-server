@@ -1,0 +1,7 @@
+admin_ip = ""
+ssh_public_key_path = ""
+alert_email = ""
+
+cloudflare_zone_id = ""
+cloudflare_api_token = ""
+dns_record_name = ""
