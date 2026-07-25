@@ -73,14 +73,6 @@ else
   # Depot files sometimes lose their executable bit on extraction.
   chmod +x "$INSTALL_DIR/start-server.sh" "$INSTALL_DIR/ProjectZomboid64" || true
 
-  # --- Cap the JVM heap ---
-  # The shipped config (ProjectZomboid64.json) defaults to requesting a
-  # 16GB heap. Our instance only has 8GB of RAM total, so left as-is the
-  # server crashes on boot with an out-of-memory error. 5GB leaves
-  # headroom for the OS and Java's own overhead.
-  sed -i 's/-Xmx[0-9]*g/-Xmx5g/' "$INSTALL_DIR/ProjectZomboid64.json"
-  sed -i 's/-Xms[0-9]*g/-Xms2g/' "$INSTALL_DIR/ProjectZomboid64.json"
-
   chown -R steam:steam "$INSTALL_DIR"
 
   # --- Start wrapper with a control pipe ---
@@ -104,6 +96,22 @@ WRAPPER
 
   chmod +x "$INSTALL_DIR/run-server.sh"
 fi
+
+# --- Cap the JVM heap ---
+# Runs on EVERY boot, baked AMI or not, because the right value depends
+# on the instance size and Packer has no way to know that at bake time.
+# The shipped config asks for a 16GB heap; anything larger than the
+# machine's actual RAM makes the server OOM-crash on startup. Leave
+# roughly 1-1.5GB below total RAM for the OS and the JVM's own overhead
+# (which lives outside the heap).
+#
+# The regex matches whatever unit is currently in the file (g or m), so
+# it works on a fresh install and when re-applied over a previous value.
+sed -i 's/-Xmx[0-9]*[gm]/-Xmx${jvm_heap_mb}m/' "$INSTALL_DIR/ProjectZomboid64.json"
+sed -i 's/-Xms[0-9]*[gm]/-Xms${jvm_initial_mb}m/' "$INSTALL_DIR/ProjectZomboid64.json"
+chown steam:steam "$INSTALL_DIR/ProjectZomboid64.json"
+
+echo "JVM heap set to ${jvm_heap_mb}m (initial ${jvm_initial_mb}m)"
 
 # --- Mount the save-data EBS volume ---
 # Always runs, baked AMI or not - the volume is instance-specific and

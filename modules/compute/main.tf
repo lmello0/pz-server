@@ -76,6 +76,8 @@ resource "aws_instance" "pz" {
     server_password = random_password.server.result
     rcon_password   = random_password.rcon.result
     max_players     = var.max_players
+    jvm_heap_mb     = var.jvm_heap_mb
+    jvm_initial_mb  = var.jvm_initial_mb
   })
 
   # By default, changing user_data does NOT make an already-running

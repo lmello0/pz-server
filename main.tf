@@ -12,6 +12,10 @@ module "compute" {
   ssh_public_key    = file(var.ssh_public_key_path)
   use_elastic_ip    = var.use_elastic_ip
   custom_ami_id     = var.custom_ami_id
+  instance_type     = var.instance_type
+  jvm_heap_mb       = var.jvm_heap_mb
+  jvm_initial_mb    = var.jvm_initial_mb
+  max_players       = var.max_players
 }
 
 module "storage" {

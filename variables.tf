@@ -59,3 +59,35 @@ variable "custom_ami_id" {
   type        = string
   default     = ""
 }
+
+# --- Instance sizing ---
+# These three move together. If you change instance_type, check the heap
+# values still fit: jvm_heap_mb must be at least ~1000-1500MB below the
+# instance's total RAM, or the server OOM-crashes on startup.
+#
+#   t3a.medium  4GB RAM  -> jvm_heap_mb = 2500   (~3-4 players, vanilla)
+#   t3a.large   8GB RAM  -> jvm_heap_mb = 5000   (~8 players, some mods)
+#
+variable "instance_type" {
+  description = "EC2 instance type. Must have enough RAM for jvm_heap_mb plus OS overhead."
+  type        = string
+  default     = "t3a.medium"
+}
+
+variable "jvm_heap_mb" {
+  description = "Max JVM heap (-Xmx) in MB. Keep 1000-1500MB below the instance's total RAM."
+  type        = number
+  default     = 2500
+}
+
+variable "jvm_initial_mb" {
+  description = "Initial JVM heap (-Xms) in MB."
+  type        = number
+  default     = 1024
+}
+
+variable "max_players" {
+  description = "Player slot cap"
+  type        = number
+  default     = 8
+}

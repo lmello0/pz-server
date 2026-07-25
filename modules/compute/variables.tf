@@ -10,9 +10,21 @@ variable "custom_ami_id" {
 }
 
 variable "instance_type" {
-  description = "t3.large = 2 vCPU / 8GB RAM, a good fit for 5-8 players with few mods"
+  description = "Must have enough RAM for jvm_heap_mb plus ~1-1.5GB for the OS. t3a.medium = 4GB (fine for ~4 players vanilla), t3.large = 8GB (comfortable for 8 + mods)."
   type        = string
-  default     = "t3.large"
+  default     = "t3a.medium"
+}
+
+variable "jvm_heap_mb" {
+  description = "Max JVM heap (-Xmx) in MB. Keep this at least 1000-1500MB BELOW the instance's total RAM - the JVM uses memory outside the heap, and the OS needs its share. Exceeding total RAM causes an OOM crash on boot."
+  type        = number
+  default     = 2500
+}
+
+variable "jvm_initial_mb" {
+  description = "Initial JVM heap (-Xms) in MB. Lower than jvm_heap_mb; the JVM grows toward the max as needed."
+  type        = number
+  default     = 1024
 }
 
 variable "subnet_id" {

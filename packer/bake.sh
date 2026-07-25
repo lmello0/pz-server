@@ -1,5 +1,4 @@
 #!/bin/bash
-# pz-server/packer/bake.sh
 #
 # Runs ONCE, by Packer, against a temporary instance. Bakes in everything
 # slow and static about the Project Zomboid install: SteamCMD, the game
@@ -76,13 +75,11 @@ fi
 # Depot files sometimes lose their executable bit on extraction.
 sudo chmod +x "$INSTALL_DIR/start-server.sh" "$INSTALL_DIR/ProjectZomboid64" || true
 
-# --- Cap the JVM heap ---
-# The shipped config (ProjectZomboid64.json) defaults to requesting a
-# 16GB heap. A t3.large only has 8GB of RAM total, so left as-is the
-# server crashes on boot with an out-of-memory error. 5GB leaves headroom
-# for the OS and Java's own overhead.
-sudo sed -i 's/-Xmx[0-9]*g/-Xmx5g/' "$INSTALL_DIR/ProjectZomboid64.json"
-sudo sed -i 's/-Xms[0-9]*g/-Xms2g/' "$INSTALL_DIR/ProjectZomboid64.json"
+# NOTE: the JVM heap cap is deliberately NOT applied here. It depends on
+# the instance size, which Packer has no knowledge of - baking a fixed
+# value in would silently override whatever jvm_heap_mb is set to in
+# Terraform. install.sh.tpl applies it at boot instead, on every deploy,
+# baked AMI or not.
 
 sudo chown -R steam:steam "$INSTALL_DIR"
 
