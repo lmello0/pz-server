@@ -43,3 +43,13 @@ module "dns" {
   elastic_ip    = module.compute.public_ip
   create_record = var.use_elastic_ip
 }
+
+# Single console view of every resource tagged Project=<project_name>.
+# Replaces myApplications, which stops accepting new applications on
+# 2026-07-30.
+module "resourcegroup" {
+  source = "./modules/resourcegroup"
+
+  project_name = var.project_name
+  aws_region   = var.aws_region
+}

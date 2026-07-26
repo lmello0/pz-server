@@ -35,3 +35,8 @@ output "rcon_password" {
   value       = module.compute.rcon_password
   sensitive   = true
 }
+
+output "resource_group_url" {
+  description = "Console link listing every resource in this deployment"
+  value       = module.resourcegroup.console_url
+}

@@ -1,3 +1,9 @@
+variable "project_name" {
+  description = "Short name for this deployment. Used as the Project tag on every resource, and as the resource group name."
+  type        = string
+  default     = "pz-server"
+}
+
 variable "aws_region" {
   description = "AWS region to deploy into"
   type        = string
