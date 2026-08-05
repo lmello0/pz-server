@@ -40,3 +40,8 @@ output "resource_group_url" {
   description = "Console link listing every resource in this deployment"
   value       = module.resourcegroup.console_url
 }
+
+output "active_world" {
+  description = "Which PZ world is currently running. Change server_name to switch."
+  value       = var.server_name
+}

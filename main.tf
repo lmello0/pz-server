@@ -16,6 +16,7 @@ module "compute" {
   jvm_heap_mb       = var.jvm_heap_mb
   jvm_initial_mb    = var.jvm_initial_mb
   max_players       = var.max_players
+  server_name       = var.server_name
 }
 
 module "storage" {

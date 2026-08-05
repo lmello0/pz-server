@@ -160,6 +160,13 @@ else
 fi
 
 # --- Server configuration ---
+# Everything below is keyed on ${server_name}. PZ treats the server name
+# as the world identity: worlds, configs and player DBs are all stored
+# per-name, side by side on the volume. So changing server_name in
+# Terraform generates a BRAND NEW world on the next apply while leaving
+# the old one untouched on disk - and changing it back returns to the
+# previous world exactly as it was. Nothing is ever deleted by switching.
+
 # The .ini lives on the PERSISTENT volume, so it survives rebuilds. Only
 # write it if it doesn't already exist - otherwise every rebuild would
 # clobber settings you'd tuned live in-game.
@@ -171,9 +178,9 @@ fi
 CONFIG_DIR="$SAVE_DIR/Server"
 mkdir -p "$CONFIG_DIR"
 
-if [ ! -f "$CONFIG_DIR/servertest.ini" ]; then
-  echo "writing initial servertest.ini"
-  cat > "$CONFIG_DIR/servertest.ini" <<INI
+if [ ! -f "$CONFIG_DIR/${server_name}.ini" ]; then
+  echo "writing initial ${server_name}.ini"
+  cat > "$CONFIG_DIR/${server_name}.ini" <<INI
 Password=${server_password}
 Open=false
 MaxPlayers=${max_players}
@@ -188,9 +195,9 @@ SaveWorldEveryMinutes=15
 DefaultPort=16261
 Map=Muldraugh, KY
 INI
-  chown steam:steam "$CONFIG_DIR/servertest.ini"
+  chown steam:steam "$CONFIG_DIR/${server_name}.ini"
 else
-  echo "servertest.ini already exists on the volume - leaving it alone"
+  echo "${server_name}.ini already exists on the volume - leaving it alone"
 fi
 
 # --- systemd service ---
@@ -206,7 +213,7 @@ After=network.target
 [Service]
 User=steam
 WorkingDirectory=$INSTALL_DIR
-ExecStart=$INSTALL_DIR/run-server.sh -servername servertest -adminpassword "${admin_password}"
+ExecStart=$INSTALL_DIR/run-server.sh -servername ${server_name} -adminpassword "${admin_password}"
 
 # --- Graceful shutdown ---
 # PZ only flushes the world to disk on a save event. A plain SIGTERM

@@ -76,6 +76,7 @@ resource "aws_instance" "pz" {
     server_password = random_password.server.result
     rcon_password   = random_password.rcon.result
     max_players     = var.max_players
+    server_name     = var.server_name
     jvm_heap_mb     = var.jvm_heap_mb
     jvm_initial_mb  = var.jvm_initial_mb
   })

@@ -59,3 +59,9 @@ variable "root_volume_size" {
   type        = number
   default     = 30
 }
+
+variable "server_name" {
+  description = "PZ world identity. Changing this creates a brand new world on next apply and leaves the old one intact on the volume; changing it back restores the previous world. Alphanumerics and underscores only - it becomes a filename."
+  type        = string
+  default     = "servertest"
+}

@@ -97,3 +97,9 @@ variable "max_players" {
   type        = number
   default     = 8
 }
+
+variable "server_name" {
+  description = "PZ world name. Change it to start a fresh world (the old one stays on the volume, untouched); change it back to return to that world. Alphanumerics and underscores only."
+  type        = string
+  default     = "servertest"
+}
